@@ -1434,7 +1434,7 @@ func Test_instance_convertBlockDeviceMappings(t *testing.T) {
 		},
 
 		{
-			name: "instance-store and EBS",
+			name: "instance-store and gp2 EBS",
 			lc: &launchConfiguration{
 				LaunchConfiguration: &autoscaling.LaunchConfiguration{
 					BlockDeviceMappings: []*autoscaling.BlockDeviceMapping{
@@ -1448,6 +1448,7 @@ func Test_instance_convertBlockDeviceMappings(t *testing.T) {
 							Ebs: &autoscaling.Ebs{
 								DeleteOnTermination: aws.Bool(false),
 								VolumeSize:          aws.Int64(10),
+								VolumeType:          aws.String("gp2"),
 							},
 							VirtualName: aws.String("bar"),
 						},
@@ -1456,6 +1457,7 @@ func Test_instance_convertBlockDeviceMappings(t *testing.T) {
 							Ebs: &autoscaling.Ebs{
 								DeleteOnTermination: aws.Bool(true),
 								VolumeSize:          aws.Int64(20),
+								VolumeType:          aws.String("gp2"),
 							},
 							VirtualName: aws.String("baz"),
 						},
@@ -1473,6 +1475,7 @@ func Test_instance_convertBlockDeviceMappings(t *testing.T) {
 					Ebs: &ec2.EbsBlockDevice{
 						DeleteOnTermination: aws.Bool(false),
 						VolumeSize:          aws.Int64(10),
+						VolumeType:          aws.String("gp2"),
 					},
 					VirtualName: aws.String("bar"),
 				},
@@ -1481,6 +1484,54 @@ func Test_instance_convertBlockDeviceMappings(t *testing.T) {
 					Ebs: &ec2.EbsBlockDevice{
 						DeleteOnTermination: aws.Bool(true),
 						VolumeSize:          aws.Int64(20),
+						VolumeType:          aws.String("gp2"),
+					},
+					VirtualName: aws.String("baz"),
+				},
+			},
+		},
+		{
+			name: "Provision io2 EBS volumes instead of io1",
+			lc: &launchConfiguration{
+				LaunchConfiguration: &autoscaling.LaunchConfiguration{
+					BlockDeviceMappings: []*autoscaling.BlockDeviceMapping{
+						{
+							DeviceName: aws.String("/dev/xvda"),
+							Ebs: &autoscaling.Ebs{
+								DeleteOnTermination: aws.Bool(false),
+								VolumeSize:          aws.Int64(10),
+								VolumeType:          aws.String("gp2"),
+							},
+							VirtualName: aws.String("bar"),
+						},
+						{
+							DeviceName: aws.String("/dev/xvdb"),
+							Ebs: &autoscaling.Ebs{
+								DeleteOnTermination: aws.Bool(true),
+								VolumeSize:          aws.Int64(20),
+								VolumeType:          aws.String("io1"),
+							},
+							VirtualName: aws.String("baz"),
+						},
+					},
+				},
+			},
+			want: []*ec2.BlockDeviceMapping{
+				{
+					DeviceName: aws.String("/dev/xvda"),
+					Ebs: &ec2.EbsBlockDevice{
+						DeleteOnTermination: aws.Bool(false),
+						VolumeSize:          aws.Int64(10),
+						VolumeType:          aws.String("gp2"),
+					},
+					VirtualName: aws.String("bar"),
+				},
+				{
+					DeviceName: aws.String("/dev/xvdb"),
+					Ebs: &ec2.EbsBlockDevice{
+						DeleteOnTermination: aws.Bool(true),
+						VolumeSize:          aws.Int64(20),
+						VolumeType:          aws.String("io2"),
 					},
 					VirtualName: aws.String("baz"),
 				},
