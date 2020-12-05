@@ -50,6 +50,9 @@ const (
 	// outside this interval set the CronScheduleState to "off" either globally or
 	// on a per-group override.
 	DefaultCronSchedule = "* *"
+
+	// The value before which GP3 is more performant than GP2 for both throughput and IOPS
+	DefaultGP2ConversionThreshold = 170
 )
 
 // Config extends the AutoScalingConfig struct and in addition contains a
@@ -212,11 +215,23 @@ func ParseConfig(conf *Config) {
 		"triggered by events and won't do anything if no event is passed either as result of "+
 		"AWS instance state notifications or simulated manually using this flag.\n")
 
-	flagSet.StringVar(&conf.PatchBeanstalkUserdata, "patch_beanstalk_userdata", "", "\n\tControls whether AutoSpotting patches Elastic Beanstalk UserData scripts to use the instance role when calling CloudFormation helpers instead of the standard CloudFormation authentication method\n"+
-		"\tExample: ./AutoSpotting --patch_beanstalk_userdata true\n")
+	flagSet.StringVar(&conf.PatchBeanstalkUserdata, "patch_beanstalk_userdata", "",
+		"\n\tControls whether AutoSpotting patches Elastic Beanstalk UserData scripts to use the "+
+			"instance role when calling CloudFormation helpers instead of the standard CloudFormation "+
+			"authentication method\n"+
+			"\tExample: ./AutoSpotting --patch_beanstalk_userdata true\n")
 
-	flagSet.StringVar(&conf.LambdaManageASG, "lambda_manage_asg", "", "\n\tThe name of the Lambda function used to manage the ASG maximum group capacity. This needs to exist in the same region as the main AutoSpotting Lambda function"+
-		"\tExample: ./AutoSpotting --lambda_manage_asg AutoSpotting-LambdaManageASG-01234567890ABC\n")
+	flagSet.StringVar(&conf.LambdaManageASG, "lambda_manage_asg", "",
+		"\n\tThe name of the Lambda function used to manage the ASG maximum group capacity. "+
+			"This needs to exist in the same region as the main AutoSpotting Lambda function\n"+
+			"\tExample: ./AutoSpotting --lambda_manage_asg AutoSpotting-LambdaManageASG-01234567890ABC\n")
+
+	flagSet.Int64Var(&conf.GP2ConversionThreshold, "ebs_gp2_conversion_threshold", DefaultGP2ConversionThreshold,
+		"\n\tThe EBS volume size below which to automatically replace GP2 EBS volumes to the newer GP3 "+
+			"volume type, that's 20% cheaper and more performant than GP2 for smaller sizes, but it's not "+
+			"getting more performant wth size as GP2 does. Over 170 GB GP2 gets better throughput, and at "+
+			"1TB GP2 also has better IOPS than a baseline GP3 volume.\n"+
+			"\tExample: ./AutoSpotting --ebs_gp2_conversion_threshold 170\n")
 
 	printVersion := flagSet.Bool("version", false, "Print version number and exit.\n")
 
